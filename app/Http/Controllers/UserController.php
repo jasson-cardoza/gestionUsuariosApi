@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 use function Laravel\Prompts\error;
 
@@ -57,23 +59,22 @@ class UserController extends Controller
             ]);
 
             $credentials = $request->only('email', 'password'); // ponemos el only por si el usuario manda mas datos, solo tomamos el mail y password
-
+            
             //intentar autenticar al usuario
-            //si las credenciales estan bien, se genera el token de acceso
-            if (Auth::attempt($credentials)){  // se puede obetener usuario desde auth o se puede obtener directamente del request
+            //si las credenciales estan bien, se genera el token de acceso]
 
-                $user = $request->user(); // se guardan las credenciales en la variable user
-
-                //Aquí se genera el token de acceso
-
-                $token = $user->createToken('auth_token')->plainTextToken; // se genera el token de acceso
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json([
+                    'error' => 'Credenciales inválidas'
+                ],401);
+            }
 
                 return response()->json([
-                    'message' => 'Inicio de sesión exitoso',
-                    'user' => $user,
-                    'token' => $token
-                ],200);
-            }
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => '5 minutos'//JWTAuth::factory()->getTTL() * 60
+                ]);
+
 
 
         }catch(Exception $error){
@@ -165,6 +166,35 @@ class UserController extends Controller
         }
         
 
+    }
+
+     //estadisticas de usuarios registrados por dia, semana y mes.
+    public function estadisticas(){
+        //usuarios registrados por dia
+        $usuariosPorDia = User::select(DB::raw('YEAR(created_at) as fecha'), DB::raw('COUNT(*) as total'))
+        ->groupBy('fecha')
+        ->orderBy('fecha', 'desc')
+        ->get();
+
+        $usuariosPorSemana = User::select(DB::raw('YEAR(created_at) as año'), DB::raw('WEEK(created_at, 1) as semana'), DB::raw('COUNT(*) as total'))
+        ->groupBy('año', 'semana')
+        ->orderBy('año', 'desc')
+        ->orderBy('semana', 'desc')
+        ->get();
+
+        $usuariosPorMes = User::select(DB::raw('YEAR(created_at) as año'), DB::raw('MONTH(created_at) as mes'), DB::raw('COUNT(*) as total'))
+        ->groupBy('año', 'mes')
+        ->orderBy('año', 'desc')
+        ->orderBy('mes', 'desc')
+        ->get();
+
+        return response()->json([
+            'message' => 'Estadisticas De Usuarios Registrados',
+            'diario' => $usuariosPorDia,
+            'semanal' => $usuariosPorSemana,
+            'mensual' => $usuariosPorMes           
+        ]);
+        
     }
 }
 
