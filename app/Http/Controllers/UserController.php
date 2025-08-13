@@ -6,12 +6,11 @@ use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 
-use function Laravel\Prompts\error;
+
 
 class UserController extends Controller
 {
@@ -196,5 +195,21 @@ class UserController extends Controller
         ]);
         
     }
-}
 
+
+public function bladeIndex()
+    {
+        $users = User::all();
+        return view('users', compact('users'));
+    }
+
+    public function bladeCreate()
+    {
+        return view('form');
+    }
+
+    public function bladeEdit(User $user)
+    {
+        return view('form', compact('user'));
+    }
+}
